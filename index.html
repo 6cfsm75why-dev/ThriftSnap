@@ -51,7 +51,7 @@
             max-width: 820px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
             position: relative;
         }
 
@@ -121,11 +121,85 @@
         }
         .subtitle { font-size: 0.85rem; color: var(--text-secondary); }
 
+        /* Item Details Card */
+        .details-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .details-card-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            user-select: none;
+        }
+        .details-card-header i {
+            transition: transform var(--transition);
+            font-size: 0.7rem;
+        }
+        .details-card.collapsed .details-grid {
+            display: none;
+        }
+        .details-card.collapsed .details-card-header i {
+            transform: rotate(-90deg);
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+        .detail-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .detail-field label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .detail-field input, .detail-field select {
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: var(--surface-alt);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: var(--text);
+            outline: none;
+        }
+        .detail-field input:focus, .detail-field select:focus {
+            border-color: var(--accent);
+        }
+
         .upload-zone {
-            background: var(--surface); border: 2px dashed var(--border); border-radius: var(--radius-lg);
-            padding: 32px 20px; text-align: center; cursor: pointer; transition: all var(--transition);
-            box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 12px;
-            min-height: 180px; justify-content: center;
+            background: var(--surface);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-height: 180px;
+            justify-content: center;
         }
         .upload-zone:hover { border-color: var(--accent); box-shadow: var(--shadow); }
         .upload-zone.drag-over { border-color: var(--accent); background: var(--accent-light); }
@@ -162,7 +236,6 @@
         .error-banner { display: none; background: var(--danger-bg); border: 1px solid #fecaca; border-radius: var(--radius); padding: 12px 14px; font-size: 0.8rem; color: #991b1b; align-items: flex-start; gap: 8px; flex-direction: column; }
         .error-banner.active { display: flex; }
         .error-banner .retry-link { font-weight: 700; cursor: pointer; text-decoration: underline; align-self: flex-end; }
-
         .raw-response-box {
             background: #fff; border: 1px solid #fecaca; border-radius: 10px; padding: 12px;
             font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto;
@@ -207,6 +280,7 @@
             .logo-icon { width: 34px; height: 34px; font-size: 0.9rem; border-radius: 10px; }
             .header { padding-right: 40px; }
             .settings-panel { width: 260px; right: -5px; }
+            .details-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -233,6 +307,50 @@
         <div class="header">
             <div class="logo"><span class="logo-icon"><i class="fa-solid fa-bolt"></i></span> ThriftSnap</div>
             <p class="subtitle">Real AI listing — confident &amp; ready for Vinted</p>
+        </div>
+
+        <!-- Item Details (user input) -->
+        <div class="details-card" id="detailsCard">
+            <div class="details-card-header" id="detailsToggle">
+                <i class="fa-solid fa-chevron-down"></i> 📋 Item Details (optional — improves accuracy)
+            </div>
+            <div class="details-grid" id="detailsGrid">
+                <div class="detail-field">
+                    <label>Size</label>
+                    <input type="text" id="itemSize" placeholder="e.g., M, UK 10, 42">
+                </div>
+                <div class="detail-field">
+                    <label>Brand</label>
+                    <input type="text" id="itemBrand" placeholder="e.g., Nike, Zara, Unbranded">
+                </div>
+                <div class="detail-field">
+                    <label>Condition</label>
+                    <select id="itemCondition">
+                        <option value="">— guess from photo —</option>
+                        <option value="New with tags">New with tags</option>
+                        <option value="Very Good">Very Good</option>
+                        <option value="Good">Good</option>
+                        <option value="Fair">Fair</option>
+                    </select>
+                </div>
+                <div class="detail-field">
+                    <label>Category</label>
+                    <select id="itemCategory">
+                        <option value="">— guess from photo —</option>
+                        <option value="Dresses">Dresses</option>
+                        <option value="Tops">Tops</option>
+                        <option value="Bottoms">Bottoms</option>
+                        <option value="Jackets & Coats">Jackets & Coats</option>
+                        <option value="Shoes">Shoes</option>
+                        <option value="Accessories">Accessories</option>
+                        <option value="Skirts">Skirts</option>
+                        <option value="Jumpsuits & Rompers">Jumpsuits & Rompers</option>
+                        <option value="Activewear">Activewear</option>
+                        <option value="Swimwear">Swimwear</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="error-banner" id="errorBanner">
@@ -320,7 +438,18 @@
                 saveApiKeyBtn: document.getElementById('saveApiKeyBtn'),
                 settingsStatus: document.getElementById('settingsStatus'),
                 modelSelect: document.getElementById('modelSelect'),
+                detailsCard: document.getElementById('detailsCard'),
+                detailsToggle: document.getElementById('detailsToggle'),
+                itemSize: document.getElementById('itemSize'),
+                itemBrand: document.getElementById('itemBrand'),
+                itemCondition: document.getElementById('itemCondition'),
+                itemCategory: document.getElementById('itemCategory'),
             };
+
+            // Toggle details card
+            elements.detailsToggle.addEventListener('click', () => {
+                elements.detailsCard.classList.toggle('collapsed');
+            });
 
             let currentFile = null, resizedBase64 = null, currentListingData = null;
             const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models/';
@@ -451,11 +580,27 @@
                 hideError();
             }
 
+            function getUserDetails() {
+                const size = elements.itemSize.value.trim();
+                const brand = elements.itemBrand.value.trim();
+                const condition = elements.itemCondition.value;
+                const category = elements.itemCategory.value;
+                let details = '';
+                if (size) details += `The user says the size is: "${size}". Use exactly this size.\n`;
+                if (brand) details += `The user says the brand is: "${brand}". Use this brand name.\n`;
+                if (condition) details += `The user says the condition is: "${condition}". Use exactly this condition.\n`;
+                if (category) details += `The user says the category is: "${category}". Use exactly this category.\n`;
+                if (details) {
+                    return `\nAdditional user-provided information (use these exact values, do not override or change them):\n${details}\n`;
+                }
+                return '';
+            }
+
             function buildConfidentPrompt() {
-                return `You are a fashion expert. Analyze the clothing item in this image and respond ONLY with a valid JSON object. No markdown, no code fences, no additional text. The response must start with "{" and end with "}".
+                const userDetails = getUserDetails();
+                return `You are a fashion expert creating Vinted listings. Analyze the clothing item in this image. Respond ONLY with a valid JSON object. No markdown, no code fences, no additional text. The response must start with "{" and end with "}".
 
-        Use absolute certainty — never say "likely", "maybe", "might", "appears", "seems".
-
+        Use absolute certainty — never say "likely", "maybe", "might", "appears", "seems". State everything as fact.${userDetails}
         Required fields:
         - title: Catchy Vinted listing title. Include item type, descriptors, color, brand.
         - description: 3-5 confident sentences about fabric, cut, style, condition.
@@ -498,21 +643,17 @@
             }
 
             function robustParseJSON(raw) {
-                console.log('Raw AI response:', raw); // for debugging
+                console.log('Raw AI response:', raw);
                 let cleaned = raw.replace(/```[a-z]*\s*/gi, '').replace(/```/g, '').trim();
-                
-                // Find first { and last }
                 const startIdx = cleaned.indexOf('{');
                 const endIdx = cleaned.lastIndexOf('}');
                 if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
                     throw new Error('No JSON object found in response');
                 }
-                
                 const jsonStr = cleaned.substring(startIdx, endIdx + 1);
                 try {
                     return JSON.parse(jsonStr);
                 } catch (e) {
-                    // Fix common issues
                     let fixed = jsonStr
                         .replace(/,\s*}/g, '}')
                         .replace(/,\s*]/g, ']')
@@ -581,7 +722,6 @@
                     try {
                         parsed = robustParseJSON(raw);
                     } catch (parseErr) {
-                        // Show raw response for debugging
                         showError(`Parsing failed: ${parseErr.message}`, raw, true);
                         return;
                     }
