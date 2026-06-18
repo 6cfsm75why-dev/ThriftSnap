@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThriftSnap — Vinted Listing Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --surface: #ffffff;
+            --surface-alt: #f1f3f6;
+            --text: #1a1d23;
+            --text-secondary: #5f6570;
+            --text-tertiary: #949ba6;
+            --accent: #0171e3;
+            --accent-light: #e8f2fd;
+            --accent-gradient: linear-gradient(135deg, #0171e3 0%, #5b4dff 50%, #8b3dff 100%);
+            --success: #0ec97e;
+            --success-bg: #e6faf1;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --border: #e2e5ea;
+            --border-light: #eef0f4;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+            --shadow-xl: 0 32px 64px rgba(0, 0, 0, 0.1), 0 12px 24px rgba(0, 0, 0, 0.05);
+            --radius-sm: 10px;
+            --radius: 16px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.45s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-image:
+                radial-gradient(ellipse at 15% 20%, rgba(1, 113, 227, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 75%, rgba(139, 61, 255, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(91, 77, 255, 0.02) 0%, transparent 70%);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+        }
+
+        /* Settings Toggle */
+        .settings-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--text-tertiary);
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+        }
+        .settings-toggle:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+            transform: rotate(30deg);
+        }
+        .settings-toggle.has-key {
+            color: var(--success);
+            border-color: var(--success);
+            background: var(--success-bg);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 20px 22px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-light);
+            z-index: 20;
+            width: 340px;
+            flex-direction: column;
+            gap: 12px;
+            animation: fadeSlideDown 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        .settings-panel.active {
+            display: flex;
+        }
+        @keyframes fadeSlideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .settings-panel label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+        }
+        .settings-panel .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .settings-panel input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 25px;
+            border: 1.5px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            background: var(--surface-alt);
+            color: var(--text);
+            outline: none;
+        }
+        .settings-panel input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(1, 113, 227, 0.08);
+            background: #fff;
+        }
+        .settings-panel .save-btn {
+            padding: 10px 16px;
+            border-radius: 25px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            font-family: 'Inter', sans-serif;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .settings-panel .save-btn:hover {
+            background: #0156b0;
+            box-shadow: 0 4px 16px rgba(1, 113, 227, 0.35);
+        }
+        .settings-hint {
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+        .settings-hint a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .settings-hint a:hover {
+            text-decoration: underline;
+        }
+        .settings-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .settings-status.success {
+            color: var(--success);
+        }
+        .settings-status.idle {
+            color: var(--text-tertiary);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding-right: 50px;
+        }
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--accent-gradient);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+            -webkit-text-fill-color: #fff;
+            box-shadow: 0 8px 24px rgba(1, 113, 227, 0.3);
+        }
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            background: var(--surface);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 48px 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            min-height: 240px;
+            justify-content: center;
+        }
+        .upload-zone:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-lg);
+            background: #fafbfd;
+            transform: translateY(-1px);
+        }
+        .upload-zone.drag-over {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: var(--shadow-xl);
+            transform: scale(1.01);
+            border-style: solid;
+        }
+        .upload-zone.has-image {
+            border-style: solid;
+            border-color: var(--border-light);
+            padding: 20px;
+            gap: 16px;
+            background: var(--surface-alt);
+        }
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+        .upload-icon-circle {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: var(--accent-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: var(--accent);
+            transition: all var(--transition);
+        }
+        .upload-zone:hover .upload-icon-circle {
+            transform: scale(1.08);
+            box-shadow: 0 8px 24px rgba(1, 113, 227, 0.2);
+        }
+        .upload-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+
+        /* Image Preview */
+        .image-preview-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition-slow);
+        }
+        .image-preview-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            aspect-ratio: 3/4;
+            border-radius: var(--radius);
+        }
+        .remove-image-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .remove-image-btn:hover {
+            background: rgba(220, 38, 38, 0.85);
+            transform: scale(1.1);
+        }
+
+        /* Buttons */
+        .analyze-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: var(--accent-gradient);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: -0.01em;
+            transition: all var(--transition);
+            box-shadow: 0 8px 24px rgba(1, 113, 227, 0.3);
+            white-space: nowrap;
+            font-family: 'Inter', sans-serif;
+        }
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(1, 113, 227, 0.4);
+        }
+        .analyze-btn:active {
+            transform: scale(0.97);
+        }
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 28px;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3.5px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .loading-text {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            animation: pulse-text 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse-text {
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Error Banner */
+        .error-banner {
+            display: none;
+            background: var(--danger-bg);
+            border: 1px solid #fecaca;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            color: #991b1b;
+            font-weight: 500;
+            align-items: center;
+            gap: 10px;
+            animation: fadeSlideUp 0.4s ease;
+        }
+        .error-banner.active {
+            display: flex;
+        }
+        .error-banner i {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .error-banner .retry-link {
+            color: #991b1b;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: auto;
+            white-space: nowrap;
+            font-size: 0.8rem;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            display: none;
+            flex-direction: column;
+            gap: 18px;
+            animation: fadeSlideUp 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        .results-panel.active {
+            display: flex;
+        }
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+        .results-header .badge {
+            font-size: 0.7rem;
+            background: var(--success-bg);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .results-header .ai-badge {
+            font-size: 0.7rem;
+            background: #f3e8ff;
+            color: #7c3aed;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        /* Result Cards */
+        .result-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .result-card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: #dde1e8;
+        }
+        .result-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .result-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            color: var(--text-tertiary);
+        }
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--accent);
+            background: var(--accent-light);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+        }
+        .copy-btn:hover {
+            background: #d0e4f8;
+            color: #0156b0;
+        }
+        .copy-btn.copied {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .result-content {
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.55;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            word-break: break-word;
+        }
+        .result-content.title-content {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #111;
+        }
+
+        /* Tags */
+        .tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background: var(--surface-alt);
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
+            transition: all var(--transition);
+            border: 1px solid transparent;
+        }
+        .tag:hover {
+            border-color: var(--border);
+            background: #fff;
+            color: var(--text);
+        }
+        .tag.hashtag {
+            background: #fdf2f8;
+            color: #be185d;
+            font-weight: 500;
+        }
+
+        /* Specs grid */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        .spec-item {
+            background: var(--surface-alt);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all var(--transition);
+            border: 1px solid transparent;
+        }
+        .spec-item:hover {
+            border-color: var(--border);
+            background: #fff;
+        }
+        .spec-item .spec-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-tertiary);
+            font-weight: 600;
+        }
+        .spec-item .spec-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        /* Price highlight */
+        .price-highlight {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--success-bg);
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #0a7a4d;
+            letter-spacing: -0.02em;
+        }
+        .price-range {
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: #5f9e7d;
+        }
+
+        /* Powered by */
+        .powered-by {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            letter-spacing: 0.02em;
+            padding-top: 4px;
+        }
+        .powered-by i {
+            margin: 0 3px;
+            font-size: 0.65rem;
+        }
+
+        @media (max-width: 640px) {
+            .upload-zone {
+                padding: 32px 18px;
+                min-height: 180px;
+                border-radius: var(--radius);
+            }
+            .upload-icon-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+            .upload-title {
+                font-size: 0.95rem;
+            }
+            .result-card {
+                padding: 16px 18px;
+                border-radius: var(--radius);
+            }
+            .specs-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .header .logo {
+                font-size: 1.5rem;
+            }
+            .logo-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+            .analyze-btn {
+                padding: 12px 24px;
+                font-size: 0.9rem;
+            }
+            .settings-panel {
+                width: 280px;
+                right: -10px;
+                padding: 16px;
+            }
+            .header {
+                padding-right: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Settings -->
+        <button class="settings-toggle" id="settingsToggle" title="API Key Settings">
+            <i class="fa-solid fa-key"></i>
+        </button>
+        <div class="settings-panel" id="settingsPanel">
+            <label>🔑 Gemini API Key</label>
+            <div class="input-row">
+                <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key...">
+                <button class="save-btn" id="saveApiKeyBtn">Save</button>
+            </div>
+            <span class="settings-status idle" id="settingsStatus">
+                <i class="fa-solid fa-circle" style="font-size: 0.45rem;"></i> No key saved
+            </span>
+            <span class="settings-hint">
+                Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.
+                Your key is stored locally in your browser.
+            </span>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-bolt"></i></span>
+                ThriftSnap
+            </div>
+            <p class="subtitle">Snap your clothes &amp; get a real AI-powered Vinted listing</p>
+        </div>
+
+        <!-- Error Banner -->
+        <div class="error-banner" id="errorBanner">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="errorMessage">Something went wrong.</span>
+            <span class="retry-link" id="retryLink" style="display:none;">Try Again</span>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div class="upload-icon-circle" id="uploadIcon">
+                <i class="fa-solid fa-camera"></i>
+            </div>
+            <div class="upload-title" id="uploadTitle">Drop your photo here</div>
+            <div class="upload-hint" id="uploadHint">or click to browse — JPG, PNG, WebP</div>
+            <div class="image-preview-wrapper" id="previewWrapper" style="display: none;">
+                <img id="previewImage" src="" alt="Preview">
+                <button class="remove-image-btn" id="removeImageBtn" title="Remove image">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <button class="analyze-btn" id="analyzeBtn" style="display: none;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Listing
+            </button>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <span class="loading-text">Analyzing your item with AI...</span>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel" id="resultsPanel">
+            <div class="results-header">
+                <i class="fa-solid fa-circle-check" style="color: var(--success);"></i>
+                Your Vinted Listing is Ready
+                <span class="badge">AI Analyzed</span>
+                <span class="ai-badge"><i class="fa-solid fa-sparkles"></i> Gemini</span>
+            </div>
+
+            <div class="result-card" id="titleCard">
+                <div class="result-card-header">
+                    <span class="result-label">📝 Listing Title</span>
+                    <button class="copy-btn" data-copy="title">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="result-content title-content" id="titleContent"></div>
+            </div>
+
+            <div class="result-card" id="descCard">
+                <div class="result-card-header">
+                    <span class="result-label">📄 Description</span>
+                    <button class="copy-btn" data-copy="description">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="result-content" id="descContent"></div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-card-header">
+                    <span class="result-label">🏷️ Item Details</span>
+                </div>
+                <div class="specs-grid" id="specsGrid"></div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-card-header">
+                    <span class="result-label">💰 Suggested Price</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span class="price-highlight" id="priceHighlight"></span>
+                    <span class="price-range" id="priceRange"></span>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-card-header">
+                    <span class="result-label">#️⃣ Hashtags</span>
+                    <button class="copy-btn" data-copy="hashtags">
+                        <i class="fa-regular fa-copy"></i> Copy All
+                    </button>
+                </div>
+                <div class="tags-row" id="hashtagsRow"></div>
+            </div>
+
+            <div class="powered-by">
+                Powered by <i class="fa-solid fa-gem"></i> Gemini AI • Real image analysis
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM Elements
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+            const previewWrapper = document.getElementById('previewWrapper');
+            const previewImage = document.getElementById('previewImage');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const uploadIcon = document.getElementById('uploadIcon');
+            const uploadTitle = document.getElementById('uploadTitle');
+            const uploadHint = document.getElementById('uploadHint');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const resultsPanel = document.getElementById('resultsPanel');
+            const errorBanner = document.getElementById('errorBanner');
+            const errorMessage = document.getElementById('errorMessage');
+            const retryLink = document.getElementById('retryLink');
+            const titleContent = document.getElementById('titleContent');
+            const descContent = document.getElementById('descContent');
+            const specsGrid = document.getElementById('specsGrid');
+            const priceHighlight = document.getElementById('priceHighlight');
+            const priceRange = document.getElementById('priceRange');
+            const hashtagsRow = document.getElementById('hashtagsRow');
+            const settingsToggle = document.getElementById('settingsToggle');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+            const settingsStatus = document.getElementById('settingsStatus');
+
+            let currentFile = null;
+            let resizedBase64 = null;
+            let currentListingData = null;
+
+            // *** UPDATED: Correct model name ***
+            const GEMINI_MODEL = 'gemini-1.5-flash-latest';
+            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+            // Load saved API key
+            function getApiKey() {
+                return localStorage.getItem('thriftsnap_gemini_key') || '';
+            }
+
+            function saveApiKey(key) {
+                localStorage.setItem('thriftsnap_gemini_key', key.trim());
+            }
+
+            function updateSettingsUI() {
+                const key = getApiKey();
+                if (key) {
+                    apiKeyInput.value = key;
+                    settingsStatus.innerHTML =
+                        '<i class="fa-solid fa-circle" style="font-size:0.45rem;color:var(--success);"></i> Key saved ✓';
+                    settingsStatus.className = 'settings-status success';
+                    settingsToggle.classList.add('has-key');
+                } else {
+                    apiKeyInput.value = '';
+                    settingsStatus.innerHTML =
+                        '<i class="fa-solid fa-circle" style="font-size:0.45rem;"></i> No key saved';
+                    settingsStatus.className = 'settings-status idle';
+                    settingsToggle.classList.remove('has-key');
+                }
+            }
+
+            updateSettingsUI();
+
+            // Settings panel toggle
+            settingsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                settingsPanel.classList.toggle('active');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.contains(e.target) && e.target !== settingsToggle) {
+                    settingsPanel.classList.remove('active');
+                }
+            });
+
+            saveApiKeyBtn.addEventListener('click', () => {
+                const key = apiKeyInput.value.trim();
+                if (key) {
+                    saveApiKey(key);
+                    updateSettingsUI();
+                    settingsPanel.classList.remove('active');
+                    hideError();
+                } else {
+                    localStorage.removeItem('thriftsnap_gemini_key');
+                    updateSettingsUI();
+                }
+            });
+
+            apiKeyInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    saveApiKeyBtn.click();
+                }
+            });
+
+            // Image resizing
+            function resizeImage(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const maxDim = 1024;
+                            let w = img.width;
+                            let h = img.height;
+                            if (w <= maxDim && h <= maxDim) {
+                                resolve(e.target.result);
+                                return;
+                            }
+                            const ratio = Math.min(maxDim / w, maxDim / h);
+                            w = Math.round(w * ratio);
+                            h = Math.round(h * ratio);
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            resolve(canvas.toDataURL('image/jpeg', 0.85));
+                        };
+                        img.onerror = () => reject(new Error('Failed to load image'));
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Error handling
+            function showError(msg, showRetry = false) {
+                errorMessage.textContent = msg;
+                errorBanner.classList.add('active');
+                retryLink.style.display = showRetry ? 'inline' : 'none';
+                loadingOverlay.classList.remove('active');
+                analyzeBtn.style.display = currentFile ? 'inline-flex' : 'none';
+                if (currentFile) {
+                    previewWrapper.style.display = 'block';
+                    uploadIcon.style.display = 'none';
+                    uploadTitle.style.display = 'none';
+                    uploadHint.style.display = 'none';
+                    uploadZone.classList.add('has-image');
+                }
+            }
+
+            function hideError() {
+                errorBanner.classList.remove('active');
+                retryLink.style.display = 'none';
+            }
+
+            retryLink.addEventListener('click', () => {
+                hideError();
+                if (currentFile) startAnalysis();
+            });
+
+            // Drag & Drop
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.add('drag-over');
+            });
+            uploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('drag-over');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+
+            uploadZone.addEventListener('click', (e) => {
+                if (e.target === removeImageBtn || removeImageBtn.contains(e.target)) return;
+                if (e.target === analyzeBtn || analyzeBtn.contains(e.target)) return;
+                if (loadingOverlay.classList.contains('active')) return;
+                if (currentFile && !e.target.closest('.image-preview-wrapper')) {
+                    fileInput.click();
+                } else if (!currentFile) {
+                    fileInput.click();
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFile(e.target.files[0]);
+            });
+
+            removeImageBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetUpload();
+            });
+
+            analyzeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentFile) startAnalysis();
+            });
+
+            async function handleFile(file) {
+                if (!file.type.startsWith('image/')) {
+                    showError('Please upload an image file (JPG, PNG, WebP).');
+                    return;
+                }
+                hideError();
+                currentFile = file;
+                resizedBase64 = null;
+                currentListingData = null;
+                resultsPanel.classList.remove('active');
+
+                try {
+                    resizedBase64 = await resizeImage(file);
+                    previewImage.src = resizedBase64;
+                    previewWrapper.style.display = 'block';
+                    uploadIcon.style.display = 'none';
+                    uploadTitle.style.display = 'none';
+                    uploadHint.style.display = 'none';
+                    analyzeBtn.style.display = 'inline-flex';
+                    uploadZone.classList.add('has-image');
+                    loadingOverlay.classList.remove('active');
+                } catch (err) {
+                    showError('Could not process this image. Please try another.');
+                    resetUpload();
+                }
+            }
+
+            function resetUpload() {
+                currentFile = null;
+                resizedBase64 = null;
+                currentListingData = null;
+                fileInput.value = '';
+                previewImage.src = '';
+                previewWrapper.style.display = 'none';
+                uploadIcon.style.display = 'flex';
+                uploadTitle.style.display = 'block';
+                uploadHint.style.display = 'block';
+                analyzeBtn.style.display = 'none';
+                uploadZone.classList.remove('has-image');
+                loadingOverlay.classList.remove('active');
+                resultsPanel.classList.remove('active');
+                hideError();
+            }
+
+            function buildPrompt() {
+                return `You are a professional fashion reseller and Vinted expert. Analyze the clothing item in this image carefully. Look at its type, style, color, pattern, fabric texture, neckline, fit, brand markings, and condition.
+
+        Return ONLY a valid JSON object with these fields:
+        - title: A catchy, search-optimized Vinted listing title. Include the item type, key descriptors, color, and brand if visible. Example: "Vintage Levi's Light Wash Denim Jacket — Size M"
+        - description: A detailed 3-5 sentence description. Mention the fabric, pattern, cut, neckline, sleeve style, condition, and how it could be styled. Be specific and appealing. Include fit notes.
+        - category: Choose ONE from: [Dresses, Tops, Bottoms, Jackets & Coats, Shoes, Accessories, Skirts, Jumpsuits & Rompers, Activewear, Swimwear, Other]
+        - brand: Brand name if visible on labels or logos, otherwise "Unbranded"
+        - condition: Choose ONE from: [New with tags, Very Good, Good, Fair]
+        - color: Primary color(s) — be descriptive (e.g., "Dusty Pink", "Charcoal Grey", "Navy Blue")
+        - size: Size if visible on the label, otherwise estimate based on appearance (XS, S, M, L, XL, XXL)
+        - material: Fabric composition if apparent (e.g., "100% Cotton", "Wool Blend", "Satin Polyester")
+        - style: 3-5 style keywords (e.g., "Casual, Minimalist, Vintage, Streetwear, Elegant")
+        - priceLow: Suggested minimum resale price in GBP (just the number)
+        - priceHigh: Suggested maximum resale price in GBP (just the number)
+        - currency: "£"
+        - hashtags: Array of 7-10 relevant hashtags WITHOUT the # symbol. Include brand tags, style tags, and platform tags like "vinted" and "preloved".
+
+        Important: Only return the JSON object. No markdown formatting, no code blocks, no additional text. Just raw JSON.`;
+            }
+
+            async function callGeminiAPI(apiKey, base64Image) {
+                const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+                const mimeType = base64Image.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
+
+                const requestBody = {
+                    contents: [{
+                        parts: [
+                            { text: buildPrompt() },
+                            {
+                                inline_data: {
+                                    mime_type: mimeType,
+                                    data: base64Data
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.4,
+                        topP: 0.9,
+                        topK: 40,
+                        maxOutputTokens: 1024,
+                    }
+                };
+
+                const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errMsg = errorData?.error?.message || `API error (${response.status})`;
+                    if (response.status === 400 && errMsg.includes('API key')) {
+                        throw new Error('Invalid API key. Please check your key in Settings.');
+                    }
+                    if (response.status === 429) {
+                        throw new Error('Rate limit reached. Please wait a moment and try again.');
+                    }
+                    throw new Error(`Gemini API: ${errMsg}`);
+                }
+
+                const data = await response.json();
+                const candidate = data?.candidates?.[0];
+                if (!candidate?.content?.parts?.length) {
+                    throw new Error('No response from AI. Please try again.');
+                }
+
+                const rawText = candidate.content.parts.map(p => p.text || '').join('').trim();
+                return rawText;
+            }
+
+            function parseGeminiResponse(rawText) {
+                // Remove any markdown code blocks
+                let cleaned = rawText
+                    .replace(/```json\s*/gi, '')
+                    .replace(/```\s*/g, '')
+                    .replace(/^[\s\n]*\{/, '{')
+                    .replace(/\}[\s\n]*$/, '}')
+                    .trim();
+
+                // Try to find a JSON object
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error('AI response was not in the expected format. Please try again.');
+                }
+
+                const parsed = JSON.parse(jsonMatch[0]);
+
+                // Validate required fields
+                const required = ['title', 'description', 'category', 'brand', 'condition', 'color', 'size',
+                    'material', 'style', 'priceLow', 'priceHigh', 'hashtags'
+                ];
+                const missing = required.filter(f => !(f in parsed));
+                if (missing.length > 0) {
+                    throw new Error(
+                        `AI response missing fields: ${missing.join(', ')}. Please try again with a clearer photo.`);
+                }
+
+                // Ensure correct types
+                parsed.priceLow = Number(parsed.priceLow) || 10;
+                parsed.priceHigh = Number(parsed.priceHigh) || parsed.priceLow + 15;
+                parsed.currency = parsed.currency || '£';
+                if (!Array.isArray(parsed.hashtags)) {
+                    parsed.hashtags = ['vinted', 'preloved', 'fashion'];
+                }
+                parsed.hashtags = parsed.hashtags.map(h => String(h).toLowerCase().replace(/[^a-z0-9]/g, '')
+                    .substring(0, 30)).filter(h => h.length > 1);
+
+                return parsed;
+            }
+
+            function populateResults(item) {
+                currentListingData = item;
+
+                // Title
+                titleContent.textContent = item.title;
+                titleContent.dataset.copyText = item.title;
+
+                // Description
+                const fullDesc =
+                    `${item.description}\n\n📏 Size: ${item.size}\n🎨 Colour: ${item.color}\n🧵 Material: ${item.material}\n✨ Condition: ${item.condition}\n🏷️ Brand: ${item.brand}\n👗 Style: ${item.style}\n\n💬 Message me with any questions — happy to bundle!`;
+                descContent.textContent = fullDesc;
+                descContent.dataset.copyText = fullDesc;
+
+                // Specs
+                specsGrid.innerHTML = '';
+                const specs = [
+                    { label: 'Category', value: item.category },
+                    { label: 'Brand', value: item.brand },
+                    { label: 'Condition', value: item.condition },
+                    { label: 'Colour', value: item.color },
+                    { label: 'Size', value: item.size },
+                    { label: 'Material', value: item.material },
+                    { label: 'Style', value: item.style },
+                ];
+                specs.forEach(spec => {
+                    const div = document.createElement('div');
+                    div.className = 'spec-item';
+                    div.innerHTML =
+                        `<span class="spec-label">${spec.label}</span><span class="spec-value">${spec.value}</span>`;
+                    specsGrid.appendChild(div);
+                });
+
+                // Price
+                const priceStr =
+                    `${item.currency}${item.priceLow} — ${item.currency}${item.priceHigh}`;
+                priceHighlight.textContent = priceStr;
+                priceHighlight.dataset.copyText = priceStr;
+                priceRange.textContent = '• Based on similar sold listings';
+                priceRange.dataset.copyText = '';
+
+                // Hashtags
+                hashtagsRow.innerHTML = '';
+                const allHashtags = [...new Set([...item.hashtags, 'vinted', 'preloved'])];
+                allHashtags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'tag hashtag';
+                    span.textContent = '#' + tag;
+                    hashtagsRow.appendChild(span);
+                });
+                const hashtagString = allHashtags.map(t => '#' + t).join(' ');
+                hashtagsRow.dataset.copyText = hashtagString;
+            }
+
+            async function startAnalysis() {
+                const apiKey = getApiKey();
+                if (!apiKey) {
+                    showError('Please add your Gemini API key in Settings (🔑 icon) to analyze photos.');
+                    settingsPanel.classList.add('active');
+                    apiKeyInput.focus();
+                    return;
+                }
+
+                hideError();
+                resultsPanel.classList.remove('active');
+                currentListingData = null;
+
+                // Show loading
+                analyzeBtn.style.display = 'none';
+                previewWrapper.style.display = 'none';
+                uploadIcon.style.display = 'none';
+                uploadTitle.style.display = 'none';
+                uploadHint.style.display = 'none';
+                loadingOverlay.classList.add('active');
+                uploadZone.classList.add('has-image');
+
+                try {
+                    const rawResponse = await callGeminiAPI(apiKey, resizedBase64);
+                    const listingData = parseGeminiResponse(rawResponse);
+                    populateResults(listingData);
+
+                    loadingOverlay.classList.remove('active');
+                    previewWrapper.style.display = 'block';
+                    analyzeBtn.style.display = 'inline-flex';
+                    resultsPanel.classList.add('active');
+                    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (err) {
+                    console.error('Analysis error:', err);
+                    let msg = err.message || 'Something went wrong. Please try again.';
+                    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                        msg = 'Network error. Please check your internet connection.';
+                    }
+                    if (msg.includes('API key not valid') || msg.includes('Invalid API key') || msg.includes(
+                            'permission')) {
+                        msg = 'Invalid API key. Please update it in Settings (🔑 icon).';
+                    }
+                    showError(msg, true);
+                    previewWrapper.style.display = 'block';
+                    uploadIcon.style.display = 'none';
+                    uploadTitle.style.display = 'none';
+                    uploadHint.style.display = 'none';
+                    uploadZone.classList.add('has-image');
+                }
+            }
+
+            // Copy buttons
+            document.addEventListener('click', (e) => {
+                const copyBtn = e.target.closest('.copy-btn');
+                if (!copyBtn) return;
+
+                const copyType = copyBtn.dataset.copy;
+                let textToCopy = '';
+
+                switch (copyType) {
+                    case 'title':
+                        textToCopy = titleContent.dataset.copyText || titleContent.textContent;
+                        break;
+                    case 'description':
+                        textToCopy = descContent.dataset.copyText || descContent.textContent;
+                        break;
+                    case 'hashtags':
+                        textToCopy = hashtagsRow.dataset.copyText || '';
+                        break;
+                    default:
+                        textToCopy = '';
+                }
+
+                if (textToCopy) {
+                    navigator.clipboard.writeText(textToCopy.trim()).then(() => {
+                        const originalHTML = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                        copyBtn.classList.add('copied');
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalHTML;
+                            copyBtn.classList.remove('copied');
+                        }, 2000);
+                    }).catch(() => {
+                        alert('Failed to copy. Please try again.');
+                    });
+                }
+            });
+
+            // Keyboard support
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    settingsPanel.classList.remove('active');
+                }
+            });
+
+            // Initial state
+            resetUpload();
+            updateSettingsUI();
+        })();
+    </script>
+</body>
+</html>
