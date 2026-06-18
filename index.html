@@ -159,9 +159,16 @@
         .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .error-banner { display: none; background: var(--danger-bg); border: 1px solid #fecaca; border-radius: var(--radius); padding: 12px 14px; font-size: 0.8rem; color: #991b1b; align-items: center; gap: 8px; }
+        .error-banner { display: none; background: var(--danger-bg); border: 1px solid #fecaca; border-radius: var(--radius); padding: 12px 14px; font-size: 0.8rem; color: #991b1b; align-items: flex-start; gap: 8px; flex-direction: column; }
         .error-banner.active { display: flex; }
-        .error-banner .retry-link { margin-left: auto; font-weight: 700; cursor: pointer; text-decoration: underline; }
+        .error-banner .retry-link { font-weight: 700; cursor: pointer; text-decoration: underline; align-self: flex-end; }
+
+        .raw-response-box {
+            background: #fff; border: 1px solid #fecaca; border-radius: 10px; padding: 12px;
+            font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto;
+            width: 100%; display: none; margin-top: 8px; white-space: pre-wrap; color: #333;
+        }
+        .raw-response-box.show { display: block; }
 
         .results-panel { display: none; flex-direction: column; gap: 16px; }
         .results-panel.active { display: flex; }
@@ -229,9 +236,12 @@
         </div>
 
         <div class="error-banner" id="errorBanner">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span id="errorMessage">Error</span>
-            <span class="retry-link" id="retryLink" style="display:none;">Try Again</span>
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorMessage">Error</span>
+                <span class="retry-link" id="retryLink" style="display:none;">Try Again</span>
+            </div>
+            <div class="raw-response-box" id="rawResponseBox"></div>
         </div>
 
         <div class="upload-zone" id="uploadZone">
@@ -297,6 +307,7 @@
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
                 retryLink: document.getElementById('retryLink'),
+                rawResponseBox: document.getElementById('rawResponseBox'),
                 titleContent: document.getElementById('titleContent'),
                 descContent: document.getElementById('descContent'),
                 specsGrid: document.getElementById('specsGrid'),
@@ -386,10 +397,16 @@
                 });
             }
 
-            function showError(msg, showRetry = false) {
+            function showError(msg, raw = '', showRetry = false) {
                 elements.errorMessage.textContent = msg;
                 elements.errorBanner.classList.add('active');
                 elements.retryLink.style.display = showRetry ? 'inline' : 'none';
+                if (raw) {
+                    elements.rawResponseBox.textContent = raw;
+                    elements.rawResponseBox.classList.add('show');
+                } else {
+                    elements.rawResponseBox.classList.remove('show');
+                }
                 elements.loadingOverlay.classList.remove('active');
                 if (currentFile) {
                     elements.analyzeBtn.style.display = 'inline-flex';
@@ -399,7 +416,10 @@
                     elements.uploadHint.style.display = 'none';
                 }
             }
-            function hideError() { elements.errorBanner.classList.remove('active'); }
+            function hideError() {
+                elements.errorBanner.classList.remove('active');
+                elements.rawResponseBox.classList.remove('show');
+            }
 
             async function handleFile(file) {
                 if (!file.type.startsWith('image/')) { showError('Please use an image file.'); return; }
@@ -432,24 +452,24 @@
             }
 
             function buildConfidentPrompt() {
-                return `You are a fashion expert creating Vinted listings. Analyze the clothing item in this image. Speak with absolute certainty — never use words like "likely", "maybe", "might", "appears to be", "seems", or any uncertain language. State everything as fact.
+                return `You are a fashion expert. Analyze the clothing item in this image and respond ONLY with a valid JSON object. No markdown, no code fences, no additional text. The response must start with "{" and end with "}".
 
-        Return ONLY a single valid JSON object. No markdown formatting, no code fences, no extra text. The response must start with "{" and end with "}".
+        Use absolute certainty — never say "likely", "maybe", "might", "appears", "seems".
 
         Required fields:
-        - title: Catchy, search-optimized listing title. Include item type, key descriptors, color, and brand if visible.
-        - description: 3-5 definitive, confident sentences. Describe fabric, pattern, cut, neckline, sleeves, condition, and styling.
-        - category: Choose ONE from [Dresses, Tops, Bottoms, Jackets & Coats, Shoes, Accessories, Skirts, Jumpsuits & Rompers, Activewear, Swimwear, Other]
-        - brand: Brand if visible, otherwise "Unbranded"
+        - title: Catchy Vinted listing title. Include item type, descriptors, color, brand.
+        - description: 3-5 confident sentences about fabric, cut, style, condition.
+        - category: One of [Dresses, Tops, Bottoms, Jackets & Coats, Shoes, Accessories, Skirts, Jumpsuits & Rompers, Activewear, Swimwear, Other]
+        - brand: Brand name or "Unbranded"
         - condition: One of [New with tags, Very Good, Good, Fair]
-        - color: Primary color(s) — descriptive (e.g., "Dusty Pink")
-        - size: Size from label or confident estimate (XS, S, M, L, XL, XXL)
-        - material: Fabric composition (e.g., "100% Cotton")
-        - style: 3-5 style keywords (e.g., "Casual, Minimalist, Vintage")
-        - priceLow: Suggested min resale price in GBP (number)
-        - priceHigh: Suggested max resale price in GBP (number)
+        - color: Descriptive color(s)
+        - size: Label size or estimate (XS, S, M, L, XL, XXL)
+        - material: Fabric composition
+        - style: 3-5 keywords (e.g., "Casual, Minimalist")
+        - priceLow: Min resale price in GBP (number)
+        - priceHigh: Max resale price in GBP (number)
         - currency: "£"
-        - hashtags: Array of 7-10 relevant hashtags (no # symbol). Include brand, style, "vinted", "preloved".`;
+        - hashtags: Array of 7-10 hashtags without # symbol. Include "vinted", "preloved".`;
             }
 
             async function callGeminiAPI(apiKey, base64Image, model) {
@@ -462,7 +482,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: buildConfidentPrompt() }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
-                        generationConfig: { temperature: 0.2, topP: 0.9, topK: 40, maxOutputTokens: 1024 }
+                        generationConfig: { temperature: 0.1, topP: 0.9, topK: 40, maxOutputTokens: 1024 }
                     })
                 });
 
@@ -473,39 +493,35 @@
                 }
                 const data = await response.json();
                 const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
-                if (!text) throw new Error('Empty AI response');
+                if (!text) throw new Error('Empty response from AI');
                 return text;
             }
 
             function robustParseJSON(raw) {
-                // Remove all markdown fences and whitespace
+                console.log('Raw AI response:', raw); // for debugging
                 let cleaned = raw.replace(/```[a-z]*\s*/gi, '').replace(/```/g, '').trim();
                 
-                // Find the first { and last }
+                // Find first { and last }
                 const startIdx = cleaned.indexOf('{');
                 const endIdx = cleaned.lastIndexOf('}');
                 if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
                     throw new Error('No JSON object found in response');
                 }
                 
-                // Extract only the JSON substring
                 const jsonStr = cleaned.substring(startIdx, endIdx + 1);
-                
                 try {
                     return JSON.parse(jsonStr);
                 } catch (e) {
-                    // Try to fix common issues: trailing commas, unquoted strings, etc.
+                    // Fix common issues
                     let fixed = jsonStr
-                        .replace(/,\s*}/g, '}')           // trailing comma in object
-                        .replace(/,\s*]/g, ']')           // trailing comma in array
-                        .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":') // ensure property names are quoted
-                        .replace(/:\s*'([^']*)'/g, ':"$1"') // single quotes to double quotes
-                        .replace(/\\'/g, "'");           // escaped single quotes
-                    
+                        .replace(/,\s*}/g, '}')
+                        .replace(/,\s*]/g, ']')
+                        .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+                        .replace(/:\s*'([^']*)'/g, ':"$1"');
                     try {
                         return JSON.parse(fixed);
                     } catch (e2) {
-                        throw new Error('Failed to parse JSON response');
+                        throw new Error('JSON parse failure');
                     }
                 }
             }
@@ -561,7 +577,14 @@
                 elements.uploadHint.style.display = 'none'; elements.loadingOverlay.classList.add('active');
                 try {
                     const raw = await callGeminiAPI(apiKey, resizedBase64, getSelectedModel());
-                    const parsed = robustParseJSON(raw);
+                    let parsed;
+                    try {
+                        parsed = robustParseJSON(raw);
+                    } catch (parseErr) {
+                        // Show raw response for debugging
+                        showError(`Parsing failed: ${parseErr.message}`, raw, true);
+                        return;
+                    }
                     const validated = validateListing(parsed);
                     populateResults(validated);
                     elements.loadingOverlay.classList.remove('active');
@@ -573,7 +596,7 @@
                     console.error(err);
                     let msg = err.message;
                     if (msg.includes('Failed to fetch')) msg = 'Network error. Check connection.';
-                    showError(msg, true);
+                    showError(msg, '', true);
                     elements.previewWrapper.style.display = 'block';
                     elements.analyzeBtn.style.display = 'inline-flex';
                 }
